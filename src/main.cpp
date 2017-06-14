@@ -8,9 +8,9 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
 #include "json.hpp"
-#include "matplotlibcpp.h"
+//#include "matplotlibcpp.h"
 
-namespace plt = matplotlibcpp;
+//namespace plt = matplotlibcpp;
 
 // for convenience
 using json = nlohmann::json;
@@ -96,15 +96,15 @@ int main() {
                     double v = j[1]["speed"];
 
                     // according to online walkthrough
-                    for (int i = 0; i < pstx.size(); ++i)
+                    for (int i = 0; i < ptsx.size(); ++i)
                     {
                         // shift car reference angle to 90 degrees
-                        double shift_x = pstx[i]-px;
+                        double shift_x = ptsx[i]-px;
                         double shift_y = ptsy[i]-py;
 
                         // rotate the points about 90 degrees, 
                         // so reference system has 0 degrees and at origin
-                        pstx[i] = (shift_x *cos(0-psi) - shift_y*sin(0-psi));
+                        ptsy[i] = (shift_x *cos(0-psi) - shift_y*sin(0-psi));
                         ptsy[i] = (shift_x *sin(0-psi) + shift_y*cos(0-psi));
                     }
 
@@ -166,7 +166,7 @@ int main() {
                     vector<double> mpc_y_vals;
 
                     // for visual debugging
-                    for (int i = 2; i < vars.size(); ++i)
+                    for (unsigned int i = 2; i < vars.size(); ++i)
                     {
                       if (i%2 == 0)
                       {
@@ -185,7 +185,8 @@ int main() {
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-                    msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
+                    //msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
+                    msgJson["steering_angle"] = vars[0]/(deg2rad(25));
                     msgJson["throttle"] = vars[1]; //editted: /////////////////
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
