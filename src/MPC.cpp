@@ -42,18 +42,17 @@ class FG_eval {
     FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
 
     typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
+
+    // FG_eval method:
     void operator()(ADvector& fg, const ADvector& vars) {
-        // TODO: implement MPC
-        // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
-        // NOTE: You'll probably go back and forth between this function and
-        // the Solver function below.
+        // Implement MPC
+        // `fg` vector of the cost constraints,
+        // `vars` vector of variable values (state & actuators)
+
+        // the cost value:
         fg[0] = 0;
 
         // Reference State Cost
-        // TODO: Define the cost related the reference state and
-        // any anything you think may be beneficial.
-
-        // DONE- added from MPC Quizes ///////////////////////////
         // The part of the cost based on the reference state.
         for (int t = 0; t < N; t++) {
             fg[0] += 2000*CppAD::pow(vars[cte_start + t], 2);
@@ -61,7 +60,7 @@ class FG_eval {
             fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
           }
 
-        // Minimize the use of actuators.
+        // Cost based on actuators.
         for (int t = 0; t < N - 1; t++) {
             fg[0] += 5*CppAD::pow(vars[delta_start + t], 2);
             fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
@@ -69,14 +68,15 @@ class FG_eval {
 
         // Minimize the value gap between sequential actuations.
         // Multiplying this part by a values > 1,
-        // will influence the solver into keeping sequential values closer togterh
+        // will influence the solver into keeping sequential values closer togther
         for (int t = 0; t < N - 2; t++) {
             fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
             fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
           }
 
+        // YOU ARE HERE
         //
-        // Setup Constraints
+        // Setup model Constraints
         //
         // NOTE: In this section you'll setup the model constraints.
 
