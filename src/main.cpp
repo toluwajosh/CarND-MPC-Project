@@ -131,8 +131,8 @@ int main() {
                     double epsi = -atan(coeffs[1]); // a simplification, since psi=0 and px=0
 
                     // information from the simuator
-                    double steer_value = j[1]["steering_angle"];
-                    double throttle_value = j[1]["throttle"];
+                    // double steer_value = j[1]["steering_angle"];
+                    // double throttle_value = j[1]["throttle"];
 
                     
                     Eigen::VectorXd state(6);
@@ -171,7 +171,6 @@ int main() {
                       }
                     }
 
-                    double Lf = 2.67;
 
                     // //Display the waypoints/reference line
                     // vector<double> next_x_vals;
@@ -181,8 +180,9 @@ int main() {
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
 
-                    msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
-                    // msgJson["steering_angle"] = vars[0]/(deg2rad(25));
+                    // double Lf = 2.67;
+                    // msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
+                    msgJson["steering_angle"] = vars[0]/(deg2rad(25));
                     msgJson["throttle"] = vars[1];
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
