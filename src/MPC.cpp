@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // Set the timestep length and duration
-size_t N = 12;
-double dt = 0.25;
+size_t N = 20;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -50,31 +50,30 @@ class FG_eval {
         // `vars` vector of variable values (state & actuators)
 
         // the cost value:
-        fg[0] = 0;
+        fg[0] = 0.0;
 
         // Reference State Cost
         // The part of the cost based on the reference state.
-        for (int t = 0; t < N; t++) {
-            fg[0] += 2000*CppAD::pow(vars[cte_start + t], 2);
-            fg[0] += 2000*CppAD::pow(vars[epsi_start + t], 2);
+        for (unsigned int t = 0; t < N; t++) {
+            fg[0] += 10*CppAD::pow(vars[cte_start + t] - ref_cte, 2);
+            fg[0] += 10*CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
             fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
           }
 
         // Cost based on actuators.
-        for (int t = 0; t < N - 1; t++) {
-            fg[0] += 5*CppAD::pow(vars[delta_start + t], 2);
-            fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
+        for (unsigned int t = 0; t < N - 1; t++) {
+            fg[0] += 10000*CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 10*CppAD::pow(vars[a_start + t], 2);
           }
 
         // Minimize the value gap between sequential actuations.
         // Multiplying this part by a values > 1,
         // will influence the solver into keeping sequential values closer togther
-        for (int t = 0; t < N - 2; t++) {
-            fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
+        for (unsigned int t = 0; t < N - 2; t++) {
+            fg[0] += 100*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 1*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
           }
 
-        // YOU ARE HERE
         //
         // Setup model Constraints
         //
@@ -92,7 +91,7 @@ class FG_eval {
         fg[1 + epsi_start] = vars[epsi_start];
 
         // The rest of the constraints
-        for (int t = 1; t < N-1; t++) {
+        for (unsigned int t = 1; t < N-1; t++) {
             // The state at time t+1 .
             AD<double> x1 = vars[x_start + t + 1];
             AD<double> y1 = vars[y_start + t + 1];
@@ -134,6 +133,7 @@ class FG_eval {
             // v_[t+1] = v[t] + a[t] * dt
             // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
             // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+
             fg[2 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[2 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
             fg[2 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
@@ -154,7 +154,7 @@ MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     bool ok = true;
-    size_t i;
+     // size_t i;
 
     typedef CPPAD_TESTVECTOR(double) Dvector;
 
@@ -171,19 +171,17 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     double cte = state[4];
     double epsi = state[5];
 
-    int no_of_states = 6;
-    int no_of_actuators = 2;
 
     // Number of model variables
-    size_t n_vars = no_of_states * N  + no_of_actuators * (N - 1);
+    size_t n_vars = N*6 + (N - 1)*2;
 
     // Number of constraints (timesteps * no_of_states)
-    size_t n_constraints = N*no_of_states;
+    size_t n_constraints = N*6;
 
     // Initial value of the independent variables.
     // SHOULD BE 0 besides initial state.
     Dvector vars(n_vars);
-    for (int i = 0; i < n_vars; i++) {
+    for (unsigned int i = 0; i < n_vars; i++) {
         vars[i] = 0;
       }
 
@@ -201,20 +199,20 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
     // Set all non-actuators upper and lower limits
     // to the max negative and positive values.
-    for (int i = 0; i < delta_start; i++) {
+    for (unsigned int i = 0; i < delta_start; i++) {
         vars_lowerbound[i] = -1.0e19;
         vars_upperbound[i] = 1.0e19;
     }
 
     // The upper and lower limits of delta are set to -25 and 25 degrees
     // presented in radians:
-    for (int i = delta_start; i < a_start; i++) {
-        vars_lowerbound[i] = -0.436332*Lf;
-        vars_upperbound[i] = 0.436332*Lf;
+    for (unsigned int i = delta_start; i < a_start; i++) {
+        vars_lowerbound[i] = -0.436332;
+        vars_upperbound[i] = 0.436332;
     }
 
     // Acceleration/decceleration upper and lower limits.
-    for (int i = a_start; i < n_vars; i++) {
+    for (unsigned int i = a_start; i < n_vars; i++) {
         vars_lowerbound[i] = -1.0;
         vars_upperbound[i] = 1.0;
     }
@@ -225,9 +223,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // A usage example here: https://www.coin-or.org/CppAD/Doc/ipopt_solve_get_started.cpp.htm
     Dvector constraints_lowerbound(n_constraints);
     Dvector constraints_upperbound(n_constraints);
-    for (int i = 0; i < n_constraints; i++) {
-        constraints_lowerbound[i] = 0;
-        constraints_upperbound[i] = 0;
+    for (unsigned int i = 0; i < n_constraints; i++) {
+        constraints_lowerbound[i] = 0.0;
+        constraints_upperbound[i] = 0.0;
       }
 
     // special case lower and upper bounds for the initial states
@@ -289,10 +287,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     result.push_back(solution.x[delta_start]);
     result.push_back(solution.x[a_start]);
 
-    for (int i = 0; i < N-1; ++i)
+    std::cout<< "THROTTLE in solve: "<<solution.x[a_start];
+    std::cout<< "\n"<<std::endl;
+
+    for (unsigned int i = 0; i < N-1; ++i)
     {
-        result.push_back(solution.x[x_start + i + 1]); // choosing where the car would be in a future
-        result.push_back(solution.x[y_start + i + 1]);
+        result.push_back(solution.x[x_start + i +1]); // choosing where the car would be in a future
+        result.push_back(solution.x[y_start + i +1]);
     }
 
     // return result
