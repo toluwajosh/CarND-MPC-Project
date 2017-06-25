@@ -53,7 +53,9 @@ The following are the steps followed in implementing the MPC:
 
 The variables are then updated using the global kinematic model given by:
 
-<img src="/media/global_kinematic_model_eqns.png" alt="Global Kinematic Model" width="350" align="middle">
+<p align="center">
+<img src="/media/global_kinematic_model_eqns.png" alt="Global Kinematic Model Equations" width="300" align="middle">
+</p>
 
 as in;
 ```cpp
@@ -70,10 +72,86 @@ as in;
 
           // save state
           Eigen::VectorXd state(6);
-          // state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
           state<< current_px, current_py, current_psi, 
                       current_v, current_cte, current_epsi;
 ```
+2. The prediction timesteps `N` and intervals `dt` are defined and used to set up variables for the MPC optimizer.
 
-2. I used the state variables and the obtained coefficients to set up constraints for the MPC optimization
-(See: [MPC.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/MPC.cpp)):
+3. The MPC cost is defined from `cte`, `epsi` and velocity `v`. The cost also accounts for actuators (`delta`, `a`) and the change in actuator values as in;
+```cpp
+        // Initialize the cost value
+        fg[0] = 0;
+
+        // Define the costs
+        for (unsigned int t = 0; t < N; t++) {
+            fg[0] += 2000*CppAD::pow(vars[cte_start + t], 2);
+            fg[0] += 2000*CppAD::pow(vars[epsi_start + t], 2);
+            fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+          }
+
+        // Higher weights mean minimizing the use of actuators.
+        for (unsigned int t = 0; t < N - 1; t++) {
+            fg[0] += 0.1*CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 50*CppAD::pow(vars[a_start + t], 2);
+          }
+
+        // Minimize the value gap between sequential actuations.
+        // Higher weights will influence the solver into keeping sequential values closer togther
+        for (unsigned int t = 0; t < N - 2; t++) {
+            fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 100*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
+          }
+```
+3. The state variables and the obtained coefficients (from [main.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/main.cpp)) are used to set up constraints for the MPC optimization. The aim of the constraints is to make the difference between values at time `t` and time `t+1` equal to zero. For example, in case of the `cte`, we have;
+
+<p align="center">
+<img src="/media/cte_t+1.png" alt="CTE equation" width="300" align="middle">
+</p>
+
+hence the constraint;
+
+<p align="center">
+<img src="/media/cte_constraint.png" alt="CTE constraint" width="300" align="middle">
+</p>
+
+This is implemented in the code as follows ([MPC.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/MPC.cpp)):
+```cpp
+        //
+        // Setup Constraints
+        //
+        // Initial constraints
+        fg[1 + x_start] = vars[x_start];
+        fg[1 + y_start] = vars[y_start];
+        fg[1 + psi_start] = vars[psi_start];
+        fg[1 + v_start] = vars[v_start];
+        fg[1 + cte_start] = vars[cte_start];
+        fg[1 + epsi_start] = vars[epsi_start];
+
+        // The rest of the constraints
+        for (unsigned int t = 0; t < N-1; t++) {
+            .
+            .
+            .
+            .
+            .
+            
+            // Evalutate cte and desired psi
+            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2]*x0*x0 + coeffs[3]*x0*x0*x0;
+            AD<double> psides0 = CppAD::atan(3*coeffs[3]*x0*x0+2*coeffs[2]*x0+coeffs[1]);
+
+            // constraint for variables and errors
+            fg[2 + x_start + t ] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+            fg[2 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+            fg[2 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+            fg[2 + v_start + t] = v1 - (v0 + a0 * dt);
+            fg[2 + cte_start + t] =
+                cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+            fg[2 + epsi_start + t] =
+                epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+        }
+```
+4. An optimizer ([Ipopt](https://projects.coin-or.org/Ipopt)) is given the initial state and then returns the vector of control inputs that minimize the cost function.
+
+5. The fist control input is applied to the vehicle, and we repeat the process for subsequent waypoints.
+
+### Timestep Length and Elapsed Duration (`N` and `dt`)

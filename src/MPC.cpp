@@ -106,7 +106,7 @@ class FG_eval {
             AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2]*x0*x0 + coeffs[3]*x0*x0*x0;
             AD<double> psides0 = CppAD::atan(3*coeffs[3]*x0*x0+2*coeffs[2]*x0+coeffs[1]);
 
-
+            // constraint for variables and errors
             fg[2 + x_start + t ] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[2 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
             fg[2 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
