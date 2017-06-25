@@ -68,6 +68,8 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
     return result;
   }
 
+const double Lf = 2.67;
+
 int main() {
     uWS::Hub h;
 
@@ -95,70 +97,61 @@ int main() {
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
 
-                    // according to online walkthrough
-                    for (int i = 0; i < ptsx.size(); ++i)
+                    // change reference position into car's coordinate
+                    for (unsigned int i = 0; i < ptsx.size(); ++i)
                     {
-                        // shift car reference angle to 90 degrees
                         double shift_x = ptsx[i]-px;
                         double shift_y = ptsy[i]-py;
 
-                        // rotate the points about 90 degrees, 
-                        // so reference system has 0 degrees and at origin
-                        ptsy[i] = (shift_x *cos(0-psi) - shift_y*sin(0-psi));
-                        ptsy[i] = (shift_x *sin(0-psi) + shift_y*cos(0-psi));
+                        ptsx[i] = (shift_x*cos(0-psi) - shift_y*sin(0-psi));
+                        ptsy[i] = (shift_x*sin(0-psi) + shift_y*cos(0-psi));
                     }
 
-                    // use pointers of points
+                    // convert points to VecotrXD for use in polyfit function
                     double* ptrx = &ptsx[0];
                     Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);
 
                     double* ptry = &ptsy[0];
                     Eigen::Map<Eigen::VectorXd> ptsy_transform(ptry, 6);
 
-                    /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
-          */
-                    // global kinematic model... from solution
-                    //psi = psi + (v/Lf) * actuators[0] * dt;
-                    //v = v + actuators[1] * dt;
-
-                    // next_state<<x,y,psi,v;
-                    // copied: fit a polynomial to the above x and y coordinates
+                    // calculate coefficients for line fit
                     auto coeffs = polyfit(ptsx_transform, ptsy_transform, 3);
 
-                    // according to online walkthrough
-                    // calculate cte and epsi
+                    // The distance between the car and the center of the road
                     double cte =  polyeval(coeffs, 0);
                     // double epsi = psi - atan(coeffs[1] + 2 *px*coeffs[2] + 3 *coeffs[3]*pow(px,2))
                     double epsi = -atan(coeffs[1]); // a simplification, since psi=0 and px=0
 
-                    double steer_value = j[1]["steering_angle"];
-                    double throttle_value = j[1]["throttle"];
+                    double delta = j[1]["steering_angle"];
+                    double a = j[1]["throttle"];
+                    double dt = 0.1; // accounting for 100ms of latency
 
-
-                    // double steer_value = polyeval(coeffs, py)- py;
-                    // double throttle_value = polyeval(coeff, v);
+                    double current_px = v*dt;
+                    double current_py = 0.0;
+                    double current_psi = v * (-delta)/Lf * dt;
+                    double current_v = v + a*dt;
+                    double current_cte = cte + v*sin(epsi) * dt;
+                    double current_epsi = epsi + v * (-delta)/Lf * dt;
 
                     // save state
                     Eigen::VectorXd state(6);
-                    state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
+                    // state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
+                    state<< current_px, current_py, current_psi, 
+                                current_v, current_cte, current_epsi;
 
                     auto vars = mpc.Solve(state, coeffs);
 
-                    //Display the waypoints/reference line
+                    // Display the waypoints/reference line
                     vector<double> next_x_vals;
                     vector<double> next_y_vals;
 
                     // for visual debugging
                     double poly_inc = 2.5; // amount of distance
-                    int num_points = 25; // how many time steps
+                    int num_points = 25; // how many time steps to see ahead
                     for (int i = 1; i < num_points; ++i)
                     {
-                      next_x_vals.push_back(poly_inc*1);
-                      next_y_vals.push_back(polyeval(coeffs, poly_inc*1));
+                      next_x_vals.push_back(poly_inc*i);
+                      next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
                     }
 
                     //Display the MPC predicted trajectory
@@ -178,15 +171,11 @@ int main() {
                       }
                     }
 
-                    // //Display the waypoints/reference line
-                    // vector<double> next_x_vals;
-                    // vector<double> next_y_vals;
-                    
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-                    //msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
-                    msgJson["steering_angle"] = vars[0]/(deg2rad(25));
+                    msgJson["steering_angle"] = -vars[0]/(deg2rad(25)*Lf);
+                    // msgJson["steering_angle"] = -vars[0]/(deg2rad(25));
                     msgJson["throttle"] = vars[1]; //editted: /////////////////
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
