@@ -10,19 +10,20 @@ In the model, the cross track error is calculated and a latency of 100 milliseco
 
 ## 1.0 Implementation
 ### 1.1 The model:
-In other to drive the car around we need to know the state of the car, the actions we need to perform and lastly the outcome of our actions. In addition we also have a reference trajectory which we desire to follow. MPC uses the state of the car and the errors between the desired and the reference trajectory to predict an optimal trajectory by simulating different actuator inputs and then selecting a resulting trajectory with the minimum cost.
+In order to drive the car around we need to know the state of the car, the actions we need to perform and lastly the outcome of our actions. In addition we also have a reference trajectory which we desire to follow. MPC uses the state of the car and the errors between the desired and the reference trajectory to predict an optimal trajectory by simulating different actuator inputs and then selecting a resulting trajectory with the minimum cost.
 
 Our state variables are:
 * `x` and `y` the position of the car,
 * `psi` the orientation of the car, and
 * `v` the velocity of the car.
+
 Our actuations are
 * `delta` the steering angle, and
 * `a` the acceleration.
 
 The following are the steps followed in implementing the MPC:
 
-1. First, a third degree polynomial is fitted to waypoints recieved from the simulator and the cross track error (`cte`) is obtained by evaluating the polynomial at current `x` position, and the orientation error `epsi`.(See: [main.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/main.cpp));
+1. First, a third degree polynomial is fitted to waypoints recieved from the simulator and the cross track error (`cte`) is obtained by evaluating the polynomial at current `x` position. The orientation error `epsi` is obtained by evaluating derivative of the curve at the same postion.(See: [main.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/main.cpp));
 ```cpp
           // change reference position into car's coordinate
           for (unsigned int i = 0; i < ptsx.size(); ++i)
@@ -57,7 +58,7 @@ The variables are then updated using the global kinematic model given by:
 <img src="/media/global_kinematic_model_eqns.png" alt="Global Kinematic Model Equations" width="300" align="middle">
 </p>
 
-as in;
+as in the code;
 ```cpp
           double delta = j[1]["steering_angle"];position
           double a = j[1]["throttle"];
@@ -75,9 +76,9 @@ as in;
           state<< current_px, current_py, current_psi, 
                       current_v, current_cte, current_epsi;
 ```
-2. The prediction timesteps `N` and intervals `dt` are defined and used to set up variables for the MPC optimizer.
+2. The prediction timesteps `N` and intervals `dt` are defined and used to set up the variables for the MPC optimizer.
 
-3. The MPC cost is defined from `cte`, `epsi` and velocity `v`. The cost also accounts for actuators (`delta`, `a`) and the change in actuator values as in;
+3. The MPC cost is defined using the `cte`, `epsi` and velocity `v`. The cost also accounts for actuators (`delta`, `a`) values and the change in the actuator values as in the code;
 ```cpp
         // Initialize the cost value
         fg[0] = 0;
@@ -150,15 +151,15 @@ This is implemented in the code as follows ([MPC.cpp](https://github.com/toluwaj
                 epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
         }
 ```
-4. An optimizer ([Ipopt](https://projects.coin-or.org/Ipopt)) is given the initial state and then returns the vector of control inputs that minimize the cost function.
+4. An optimizer ([Ipopt](https://projects.coin-or.org/Ipopt)) is given the initial state, then it returns the vector of control inputs that minimize the cost function.
 
-5. The fist control input is applied to the vehicle, and we repeat the process for subsequent waypoints.
+5. The first control input is applied to the vehicle, and we repeat the process for subsequent waypoints.
 
 ### 1.2 Timestep Length and Elapsed Duration (`N` and `dt`)
-I first used `N=10` and `dt=0.1` to observe the performance of the model. This worked well in most cases but the trajectory sometimes breaks at the curve. Since `dt` signifies elasped time, reducing it will result in the model predicting for a smaller elapsed time, so I chose `0.05`. I also tried `N=20`, but this resulted in the model having a farther prediction horizon. However, since we only use the first predicted value, this is not very useful. `N=10` and `dt=0.05` was finally chosen. This means we have a prediction horizon of `10 * 0.05 = 0.5 sec`, which resulted in a more stable prediction.
+I first used `N=10` and `dt=0.1` to observe the performance of the model. This worked well in most cases but the trajectory sometimes breaks at the curve. Since `dt` signifies elasped time, reducing it will result in the model predicting for a smaller elapsed time, so I chose `0.05`. I also tried `N=20`, but this resulted in the model having a farther prediction horizon and also the solution breaking at the curves. However, since we only use the first predicted value, this is not very useful. `N=10` and `dt=0.05` was finally chosen. This means we have a prediction horizon of `10 * 0.05 = 0.5 sec`, which resulted in a more stable prediction.
 
 ### 1.3 Poynomial Fitting and MPC Preprocessing
-To make calculations easier, the reference position values were shifted into the car's coordinate (Mentioned in Sec: 1.1 No.1). Also a negative sign was added to `delta` after I observed that the car moves in the opposite direction of the predicted trajectory.
+To make our calculations easier, the reference position values were shifted into the car's coordinate (Mentioned in Sec: 1.1 No.1), therefore when we evaluate `cte` and `epsi`, the value of `x` is taken as `zero`. Also a negative sign was added to `delta` after I observed that the car turns in the opposite direction of the predicted trajectory.
 
 ### 1.4 MPC with Latency
 Latency of `100ms` was accounted for in the global kinematic model (Sec: 1.1 No.1 ) implementation. A `dt` of `0.1` was chosen. It was observed that the model performed better with the global kinematic model implementation.
