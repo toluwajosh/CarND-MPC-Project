@@ -7,7 +7,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 10;
-double dt = 0.1;
+double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -58,15 +58,15 @@ class FG_eval {
 
         // Higher weights mean minimizing the use of actuators.
         for (unsigned int t = 0; t < N - 1; t++) {
-            fg[0] += 0.1*CppAD::pow(vars[delta_start + t], 2);
-            fg[0] += 50*CppAD::pow(vars[a_start + t], 2);
+            fg[0] += 0.001*CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
           }
 
         // Minimize the value gap between sequential actuations.
         // Higher weights will influence the solver into keeping sequential values closer togther
         for (unsigned int t = 0; t < N - 2; t++) {
-            fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += 100*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
+            fg[0] += 20000*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 0.1*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
           }
 
         //

@@ -8,8 +8,8 @@ Term 2, Project 5
 **The objective of this project is to implement a Model Predictive Control (MPC) to drive a car around a simulated track.**
 In the model, the cross track error is calculated and a latency of 100 milliseconds is accounted for.
 
-## Implementation
-### The model:
+## 1.0 Implementation
+### 1.1 The model:
 In other to drive the car around we need to know the state of the car, the actions we need to perform and lastly the outcome of our actions. In addition we also have a reference trajectory which we desire to follow. MPC uses the state of the car and the errors between the desired and the reference trajectory to predict an optimal trajectory by simulating different actuator inputs and then selecting a resulting trajectory with the minimum cost.
 
 Our state variables are:
@@ -24,7 +24,7 @@ The following are the steps followed in implementing the MPC:
 
 1. First, a third degree polynomial is fitted to waypoints recieved from the simulator and the cross track error (`cte`) is obtained by evaluating the polynomial at current `x` position, and the orientation error `epsi`.(See: [main.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/main.cpp));
 ```cpp
-          // change reference pose into car's coordinate
+          // change reference position into car's coordinate
           for (unsigned int i = 0; i < ptsx.size(); ++i)
           {
               double shift_x = ptsx[i]-px;
@@ -36,7 +36,7 @@ The following are the steps followed in implementing the MPC:
 
           // convert points to VecotrXD for use in polyfit function
           double* ptrx = &ptsx[0];
-          Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);
+          Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);position
 
           double* ptry = &ptsy[0];
           Eigen::Map<Eigen::VectorXd> ptsy_transform(ptry, 6);
@@ -59,9 +59,9 @@ The variables are then updated using the global kinematic model given by:
 
 as in;
 ```cpp
-          double delta = j[1]["steering_angle"];
+          double delta = j[1]["steering_angle"];position
           double a = j[1]["throttle"];
-          double dt = 0.1;
+          double dt = 0.1; // accounting for 100ms of latency
 
           double current_px = v*dt;
           double current_py = 0.0;
@@ -91,15 +91,15 @@ as in;
 
         // Higher weights mean minimizing the use of actuators.
         for (unsigned int t = 0; t < N - 1; t++) {
-            fg[0] += 0.1*CppAD::pow(vars[delta_start + t], 2);
-            fg[0] += 50*CppAD::pow(vars[a_start + t], 2);
+            fg[0] += 0.001*CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
           }
 
         // Minimize the value gap between sequential actuations.
         // Higher weights will influence the solver into keeping sequential values closer togther
         for (unsigned int t = 0; t < N - 2; t++) {
-            fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += 100*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
+            fg[0] += 20000*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 0.1*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
           }
 ```
 3. The state variables and the obtained coefficients (from [main.cpp](https://github.com/toluwajosh/CarND-MPC-Project/blob/debug_and_finish/src/main.cpp)) are used to set up constraints for the MPC optimization. The aim of the constraints is to make the difference between values at time `t` and time `t+1` equal to zero. For example, in case of the `cte`, we have;
@@ -154,4 +154,19 @@ This is implemented in the code as follows ([MPC.cpp](https://github.com/toluwaj
 
 5. The fist control input is applied to the vehicle, and we repeat the process for subsequent waypoints.
 
-### Timestep Length and Elapsed Duration (`N` and `dt`)
+### 1.2 Timestep Length and Elapsed Duration (`N` and `dt`)
+I first used `N=10` and `dt=0.1` to observe the performance of the model. This worked well in most cases but the trajectory sometimes breaks at the curve. Since `dt` signifies elasped time, reducing it will result in the model predicting for a smaller elapsed time, so I chose `0.05`. I also tried `N=20`, but this resulted in the model having a farther prediction horizon. However, since we only use the first predicted value, this is not very useful. `N=10` and `dt=0.05` was finally chosen. This means we have a prediction horizon of `10 * 0.05 = 0.5 sec`, which resulted in a more stable prediction.
+
+### 1.3 Poynomial Fitting and MPC Preprocessing
+To make calculations easier, the reference position values were shifted into the car's coordinate (Mentioned in Sec: 1.1 No.1). Also a negative sign was added to `delta` after I observed that the car moves in the opposite direction of the predicted trajectory.
+
+### 1.4 MPC with Latency
+Latency of `100ms` was accounted for in the global kinematic model (Sec: 1.1 No.1 ) implementation. A `dt` of `0.1` was chosen. It was observed that the model performed better with the global kinematic model implementation.
+
+## 2.0 Simulation
+Follow the link below to see a video of the result of the MPC implementation in the simulator.
+
+[Video Result](https://youtu.be/0DKpPkj5dWM)
+
+### Summary
+Once the model has been implemented to correctly update variables and actuators, the weights on each part of the cost function can be tuned to give a better performance. This had an impact on how fast or how smoothly the car could drive. After tuning these weights, the vehicle is able to drive safely up to a speed of 91 mph.

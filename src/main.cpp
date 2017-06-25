@@ -97,7 +97,7 @@ int main() {
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
 
-                    // change reference pose into car's coordinate
+                    // change reference position into car's coordinate
                     for (unsigned int i = 0; i < ptsx.size(); ++i)
                     {
                         double shift_x = ptsx[i]-px;
@@ -124,7 +124,7 @@ int main() {
 
                     double delta = j[1]["steering_angle"];
                     double a = j[1]["throttle"];
-                    double dt = 0.1;
+                    double dt = 0.1; // accounting for 100ms of latency
 
                     double current_px = v*dt;
                     double current_py = 0.0;
