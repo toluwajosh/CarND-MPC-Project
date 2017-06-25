@@ -5,7 +5,7 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
+// Set the timestep length and duration
 size_t N = 10;
 double dt = 0.05;
 
@@ -175,7 +175,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // The upper and lower limits of delta 
     // Set to -25 and 25 degrees (values in radians).
     for (unsigned int i = delta_start; i < a_start; i++) {
-        vars_lowerbound[i] = -0.436332; //////////////////////////////////////////////////// *Lf
+        vars_lowerbound[i] = -0.436332;
         vars_upperbound[i] = 0.436332;
     }
 
