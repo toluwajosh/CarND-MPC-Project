@@ -97,10 +97,9 @@ int main() {
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
 
-                    // according to online walkthrough
+                    // change reference pose into car's coordinate
                     for (unsigned int i = 0; i < ptsx.size(); ++i)
                     {
-                        // change coordinates to car's pose
                         double shift_x = ptsx[i]-px;
                         double shift_y = ptsy[i]-py;
 
@@ -118,26 +117,27 @@ int main() {
                     // calculate coefficients for line fit
                     auto coeffs = polyfit(ptsx_transform, ptsy_transform, 3);
 
+                    // The distance between the car and the center of the road
                     double cte =  polyeval(coeffs, 0);
                     // double epsi = psi - atan(coeffs[1] + 2 *px*coeffs[2] + 3 *coeffs[3]*pow(px,2))
                     double epsi = -atan(coeffs[1]); // a simplification, since psi=0 and px=0
 
-                    // double delta = j[1]["steering_angle"];
-                    // double a = j[1]["throttle"];
-                    // double dt = 0.1;
+                    double delta = j[1]["steering_angle"];
+                    double a = j[1]["throttle"];
+                    double dt = 0.1;
 
-                    // double current_px = v*dt;
-                    // double current_py = 0.0;
-                    // double current_psi = -v * (-delta)/Lf * dt; // added negative sign
-                    // double current_v = v + a*dt;
-                    // double current_cte = cte + v*sin(epsi) * dt;
-                    // double current_epsi = epsi + v * (-delta)/Lf * dt;
+                    double current_px = v*dt;
+                    double current_py = 0.0;
+                    double current_psi = v * (-delta)/Lf * dt;
+                    double current_v = v + a*dt;
+                    double current_cte = cte + v*sin(epsi) * dt;
+                    double current_epsi = epsi + v * (-delta)/Lf * dt;
 
                     // save state
                     Eigen::VectorXd state(6);
-                    state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
-                    // state<< current_px, current_py, current_psi, 
-                    //             current_v, current_cte, current_epsi;
+                    // state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
+                    state<< current_px, current_py, current_psi, 
+                                current_v, current_cte, current_epsi;
 
                     auto vars = mpc.Solve(state, coeffs);
 

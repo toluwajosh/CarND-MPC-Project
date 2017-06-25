@@ -72,7 +72,6 @@ class FG_eval {
         //
         // Setup Constraints
         //
-
         // Initial constraints
         fg[1 + x_start] = vars[x_start];
         fg[1 + y_start] = vars[y_start];
@@ -131,32 +130,31 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // size_t i;
     typedef CPPAD_TESTVECTOR(double) Dvector;
 
-    // TODO: Set the number of model variables (includes both states and inputs).
-    // For example: If the state is a 4 element vector, the actuators is a 2
-    // element vector and there are 10 timesteps. The number of variables is:
-    //
-    // 4 * 10 + 2 * 9
-
-    // added /////////////////////////////
+    // state variables
     double x = state[0];
     double y = state[1];
     double psi = state[2];
     double v = state[3];
     double cte = state[4];
     double epsi = state[5];
-
+    
+    // Set the number of model variables (includes both states and inputs).
+    // For example: If the state is a 4 element vector, the actuators is a 2
+    // element vector and there are 10 timesteps. The number of variables is:
+    // 4 * 10 + 2 * 9
     size_t n_vars = N * 6 + (N - 1) * 2;
-    // TODO: Set the number of constraints
+
+    // Set the number of constraints
     size_t n_constraints = N*6;
 
     // Initial value of the independent variables.
-    // SHOULD BE 0 besides initial state.
+    // Zero besides initial state.
     Dvector vars(n_vars);
     for (unsigned int i = 0; i < n_vars; i++) {
         vars[i] = 0;
       }
 
-    // Set the initial variable values////////////////
+    // Set the initial variable values
     vars[x_start] = x;
     vars[y_start] = y;
     vars[psi_start] = psi;
@@ -164,42 +162,38 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars[cte_start] = cte;
     vars[epsi_start] = epsi;
 
+    // Set lower and upper limits for variables.
     Dvector vars_lowerbound(n_vars);
     Dvector vars_upperbound(n_vars);
-    // TODO: Set lower and upper limits for variables.
 
-    // Set all non-actuators upper and lowerlimits ///////////////////////////
-    // to the max negative and positive values.
+    // Non-actuators upper and lower limits
     for (unsigned int i = 0; i < delta_start; i++) {
         vars_lowerbound[i] = -1.0e19;
         vars_upperbound[i] = 1.0e19;
     }
 
-    // The upper and lower limits of delta are set to -25 and 25
-    // degrees (values in radians).
-    // NOTE: Feel free to change this to something else.
+    // The upper and lower limits of delta 
+    // Set to -25 and 25 degrees (values in radians).
     for (unsigned int i = delta_start; i < a_start; i++) {
-        vars_lowerbound[i] = -0.436332;
+        vars_lowerbound[i] = -0.436332; //////////////////////////////////////////////////// *Lf
         vars_upperbound[i] = 0.436332;
     }
 
     // Acceleration/decceleration upper and lower limits.
-    // NOTE: Feel free to change this to something else.
     for (unsigned int i = a_start; i < n_vars; i++) {
         vars_lowerbound[i] = -1.0;
         vars_upperbound[i] = 1.0;
     }
 
     // Lower and upper limits for the constraints
-    // Should be 0 besides initial state.
+    // Zero besides initial state.
     Dvector constraints_lowerbound(n_constraints);
     Dvector constraints_upperbound(n_constraints);
     for (unsigned int i = 0; i < n_constraints; i++) {
         constraints_lowerbound[i] = 0;
         constraints_upperbound[i] = 0;
       }
-
-    // copied from solution /////////////////////////
+    // Contraints initial states
     constraints_lowerbound[x_start] = x;
     constraints_lowerbound[y_start] = y;
     constraints_lowerbound[psi_start] = psi;
@@ -250,26 +244,19 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     auto cost = solution.obj_value;
     std::cout << "Cost " << cost << std::endl;
 
-    // TODO: Return the first actuator values. The variables can be accessed with
-    // `solution.x[i]`.
-
-    // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
-    // creates a 2 element double vector.
+    // Return the first actuator values. 
+    // Accessed with `solution.x[i]`.
     vector<double> result;
     result.push_back(solution.x[delta_start]);
     result.push_back(solution.x[a_start]);
 
+    // Return predicted trajectory
     for (unsigned int i = 0; i < N-1; ++i)
     {
-        result.push_back(solution.x[x_start + i + 1]); // kind of choosing where the car would be in a future
+        result.push_back(solution.x[x_start + i + 1]);
         result.push_back(solution.x[y_start + i + 1]);
     }
 
-    // // copied from solution ///////////
-    // return {solution.x[x_start + 1],   solution.x[y_start + 1],
-    //           solution.x[psi_start + 1], solution.x[v_start + 1],
-    //           solution.x[cte_start + 1], solution.x[epsi_start + 1],
-    //           solution.x[delta_start], solution.x[a_start]};
-
+    // return result
     return result;
   }
