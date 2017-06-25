@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 10;
+size_t N = 20;
 double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
@@ -62,7 +62,7 @@ class FG_eval {
 
         // Minimize the use of actuators.
         for (int t = 0; t < N - 1; t++) {
-            fg[0] += 5*CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 500*CppAD::pow(vars[delta_start + t], 2);
             fg[0] += 5*CppAD::pow(vars[a_start + t], 2);
           }
 
@@ -70,8 +70,8 @@ class FG_eval {
         // Multiplying this part by a values > 1,
         // will influence the solver into keeping sequential values closer togterh
         for (int t = 0; t < N - 2; t++) {
-            fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
+            fg[0] += 100000*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 1000*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2); // no influence of multiplication on this part
           }
 
         //

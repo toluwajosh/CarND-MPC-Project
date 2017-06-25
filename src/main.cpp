@@ -104,7 +104,7 @@ int main() {
 
                         // rotate the points about 90 degrees, 
                         // so reference system has 0 degrees and at origin
-                        ptsy[i] = (shift_x *cos(0-psi) - shift_y*sin(0-psi));
+                        ptsx[i] = (shift_x *cos(0-psi) - shift_y*sin(0-psi));
                         ptsy[i] = (shift_x *sin(0-psi) + shift_y*cos(0-psi));
                     }
 
@@ -157,8 +157,8 @@ int main() {
                     int num_points = 25; // how many time steps
                     for (int i = 1; i < num_points; ++i)
                     {
-                      next_x_vals.push_back(poly_inc*1);
-                      next_y_vals.push_back(polyeval(coeffs, poly_inc*1));
+                      next_x_vals.push_back(poly_inc*i);
+                      next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
                     }
 
                     //Display the MPC predicted trajectory
@@ -186,7 +186,7 @@ int main() {
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
                     //msgJson["steering_angle"] = vars[0]/(deg2rad(25)*Lf);
-                    msgJson["steering_angle"] = vars[0]/(deg2rad(25));
+                    msgJson["steering_angle"] = -vars[0]/(deg2rad(25));
                     msgJson["throttle"] = vars[1]; //editted: /////////////////
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
