@@ -122,13 +122,22 @@ int main() {
                     // double epsi = psi - atan(coeffs[1] + 2 *px*coeffs[2] + 3 *coeffs[3]*pow(px,2))
                     double epsi = -atan(coeffs[1]); // a simplification, since psi=0 and px=0
 
-                    // use this later for kinematic model
-                    // double steer_value = j[1]["steering_angle"];
-                    // double throttle_value = j[1]["throttle"];
+                    // double delta = j[1]["steering_angle"];
+                    // double a = j[1]["throttle"];
+                    // double dt = 0.1;
+
+                    // double current_px = v*dt;
+                    // double current_py = 0.0;
+                    // double current_psi = -v * (-delta)/Lf * dt; // added negative sign
+                    // double current_v = v + a*dt;
+                    // double current_cte = cte + v*sin(epsi) * dt;
+                    // double current_epsi = epsi + v * (-delta)/Lf * dt;
 
                     // save state
                     Eigen::VectorXd state(6);
                     state<< 0,0,0,v,cte,epsi; // zeros because, earlier transformations
+                    // state<< current_px, current_py, current_psi, 
+                    //             current_v, current_cte, current_epsi;
 
                     auto vars = mpc.Solve(state, coeffs);
 

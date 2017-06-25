@@ -1,9 +1,26 @@
-# CarND-Controls-MPC
-Self-Driving Car Engineer Nanodegree Program
+# Model Predictive Control Poject
+Udacity Self-Driving Car Engineer Nanodegree Program
+
+Term 2, Project 5
 
 ---
 
-## Dependencies
+**The objective of this project is to implement a Model Predictive Control (MPC) to drive a car around a simulated track.**
+In the model, the cross track error is calculated and a latency of 100 milliseconds is accounted for.
+
+## Implementation
+### The model:
+In other to drive the car around we need to know the state of the car, the actions we need to perform and lastly the outcome of our actions. In addition we also have a reference trajectory which we desire to follow. MPC allows us to use the state of the car and the actions, to predict a trajectory similar to the reference tracjectory and then correct our actions as we follow the trajectory.
+
+Our state properties are as:
+* `x` and `y` the position of the car,
+* `psi` the orientation of the car, and
+* `v` the velocity of the car
+Our actuators are
+* `delta` the steering angle, and
+* `a` the acceleration.
+
+Here, we use the global kinematic model
 
 * cmake >= 3.5
  * All OSes: [click here for installation instructions](https://cmake.org/install/)
