@@ -51,7 +51,7 @@ The following are the steps followed in implementing the MPC:
 ```
 *Note that the recieved waypoints were transformed into the car's coordinate to allow for easier subsequent calculations.*
 The variables are then updated using the global kinematic model given by:
-![gkm](/media/global_kinematic_model_eqns.png)
+![gkm](/media/global_kinematic_model_eqns.png =350x)
 
 as in
 ```cpp
