@@ -50,12 +50,12 @@ The following are the steps followed in implementing the MPC:
           double epsi = -atan(coeffs[1]); // a simplification, since psi=0 and px=0
 ```
 *Note that the recieved waypoints were transformed into the car's coordinate to allow for easier subsequent calculations.*
-The variables are then updated using the global kinematic model given by:
-![gkm](/media/global_kinematic_model_eqns.png)
----
-<img src="/media/global_kinematic_model_eqns.png" width="350">
 
-as in
+The variables are then updated using the global kinematic model given by:
+
+<img src="/media/global_kinematic_model_eqns.png" alt="Global Kinematic Model" width="350" align="middle">
+
+as in;
 ```cpp
           double delta = j[1]["steering_angle"];
           double a = j[1]["throttle"];
